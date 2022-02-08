@@ -2,10 +2,11 @@
 #include "VideoWriter.h"
 
 
-VideoWriter::VideoWriter(int w, int h, std::string file_out, int fps, int bit_rate)
+VideoWriter::VideoWriter(int w, int h, std::string file_out, int fps, int bit_rate, int device_count)
 {
 	this->fps = fps;
 	this->bit_rate = bit_rate;
+	num_threads = device_count;
 	input_w = w;
 	input_h = h;
 	filename_out = file_out;
@@ -49,8 +50,7 @@ int VideoWriter::init()
 	vStream->codecpar->bit_rate = bit_rate;
 	vStream->codecpar->format = AV_PIX_FMT_NV12;
 	vStream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
-	vStream->codecpar->codec_id = AV_CODEC_ID_H264;// AV_CODEC_ID_H264;
-	//vStream->codecpar->sample_aspect_ratio = input_w >= input_h ? AVRational{ 4, 3 } : AVRational{3, 4};  // 这里设置4：3，视频就可以按照16：9显示
+	vStream->codecpar->codec_id = AV_CODEC_ID_H264;
 	
 	pCodec = avcodec_find_encoder_by_name("h264_qsv");
 	//pCodec = avcodec_find_encoder_by_name("libx264");
@@ -77,8 +77,9 @@ int VideoWriter::init()
 	pCodecCtx->time_base.num = 1;
 	pCodecCtx->time_base.den = fps;
 	pCodecCtx->bit_rate = bit_rate;
-	pCodecCtx->thread_count = 4;
-	
+	pCodecCtx->thread_count = num_threads > 0 ? num_threads: 4;
+	printf("Video encoder opens %d thread\n", pCodecCtx->thread_count);
+
 	//pCodecCtx->qmin = 10;
 	//pCodecCtx->qmax = 30;
 
@@ -100,16 +101,6 @@ int VideoWriter::init()
 		return -1;
 	}
 
-	//sws_context = sws_getCachedContext(sws_context,
-	//	input_w, input_h, AV_PIX_FMT_BGR24,    // 源格式
-	//	input_w, input_h, AV_PIX_FMT_NV12,  // 目标格式
-	//	SWS_BICUBIC,    // 尺寸变化使用算法
-	//	0, 0, 0);
-
-	//if (NULL == sws_context) {
-	//	std::cout << "sws Context error" << std::endl;
-	//	return -1;
-	//}
 
 	pFrame = av_frame_alloc();
 	if (!pFrame) {
@@ -216,10 +207,22 @@ void VideoWriter::rgb2nv12(cv::Mat rgb)
 	}
 	int uv_height = y_height / 2;
 	int u_size = y_size_ / 4;
-	uint8_t *uv_p = uv_buf;
+	
 	uint8_t *u_data = yuv + y_size_;
 	uint8_t *v_data = u_data + u_size;
 	
+	/*concurrency::parallel_for(rsize_t(0), (size_t)uv_height, [&](size_t k)
+	{
+		uint8_t* uv_p = uv_buf + k * uv_step;
+		for (size_t i = 0; i < y_width / 2; i++)
+		{
+			*(uv_p + i * 2) = *(u_data + i);
+			*(uv_p + i * 2 + 1) = *(v_data + i);
+		}
+	});*/
+
+	// serial
+	uint8_t *uv_p = uv_buf;
 	for (int32_t k = 0; k < uv_height; k++)
 	{
 		uv_p = uv_buf + k * uv_step;
@@ -229,12 +232,7 @@ void VideoWriter::rgb2nv12(cv::Mat rgb)
 			*uv_p++ = *v_data++;
 		}
 	}
-	//
-	//	for (int32_t j = 0; j < u_size; j++) {
-	//		*uv_p++ = *u_data++;
-	//		*uv_p++ = *v_data++;
-	//	}
-	//}
+	
 }
 
 int VideoWriter::flush()

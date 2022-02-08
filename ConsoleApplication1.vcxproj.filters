@@ -24,12 +24,12 @@
     <ClInclude Include="VideoWriter.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="VideoReader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="ConsoleApplication1.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="BackgroundMatting.cpp">
@@ -38,7 +38,10 @@
     <ClCompile Include="VideoWriter.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="test.cpp">
+    <ClCompile Include="VideoReader.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

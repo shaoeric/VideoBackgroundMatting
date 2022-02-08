@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 #include <opencv2/opencv.hpp>
-
+//#include <ppl.h>
 
 extern "C"
 {
@@ -13,10 +13,11 @@ extern "C"
 #include <libswscale/swscale.h>
 }
 
+
 class VideoWriter
 {
 public:
-	VideoWriter(int w, int h, std::string file_out, int fps, int bit_rate);
+	VideoWriter(int w, int h, std::string file_out, int fps, int bit_rate, int num_threads);
 	~VideoWriter();
 
 	int init();
@@ -27,6 +28,7 @@ private:
 	int fps = -1;
 	int bit_rate = 0;
 	int input_w, input_h;
+	int num_threads;
 	std::string filename_out;
 
 	const AVCodec *pCodec;
@@ -41,7 +43,6 @@ private:
 	uint8_t* uv_buf;
 	int y_step;
 	int uv_step;
-	//SwsContext *sws_context = NULL;
 	void rgb2nv12(cv::Mat bgr);
 	
 };

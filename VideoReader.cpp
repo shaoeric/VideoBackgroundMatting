@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "VideoReader.h"
 
-
 VideoReader::VideoReader(std::string filename)
 {
 	in_filename = filename;
@@ -44,10 +43,10 @@ int VideoReader::init()
 	frame = av_frame_alloc();
 
 	// 1、打开多媒体文件
-	ret = avformat_open_input(&ifmt_ctx, in_filename.data(), NULL, NULL);
+	ret = avformat_open_input(&ifmt_ctx, in_filename.c_str(), NULL, NULL);
 	if (ret < 0)
 	{
-		std::cout << "reader avformat_open_input error,ret=" << ret << std::endl;
+		printf("decoder cannot open the video %s\n", in_filename.c_str());
 		return -1;
 	}
 
@@ -103,6 +102,10 @@ int VideoReader::init()
 	codec_ctx->flags2 |= AV_CODEC_FLAG2_FAST;
 	avcodec_parameters_to_context(codec_ctx, ifmt_ctx->streams[video_stream_idx]->codecpar);
 
+	int thread_count = std::thread::hardware_concurrency();
+	codec_ctx->thread_count = thread_count > 0 ? thread_count : 4;
+	printf("Video decoder opens %d threads\n", codec_ctx->thread_count);
+
 	// 5、open解码器
 	ret = avcodec_open2(codec_ctx, codec, NULL);
 	if (ret < 0)
@@ -134,13 +137,13 @@ int VideoReader::read(cv::Mat &img)
 				ret = avcodec_send_packet(codec_ctx, pkt);
 				if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
 				{
-					std::cout << "avcodec_send_packet: " << ret << std::endl;
+					//std::cout << "avcodec_send_packet: " << ret << std::endl;
 					return 0;
 				}
 				ret = avcodec_receive_frame(codec_ctx, frame);
 				if (ret < 0 || ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
 				{
-					std::cout << "avcodec_receive_packet: " << ret << std::endl;
+					//std::cout << "avcodec_receive_packet: " << ret << std::endl;
 					return 0;
 				}
 				else
@@ -228,7 +231,7 @@ int VideoReader::AVFrame2Img(AVFrame * pFrame, cv::Mat &bgr)
 	}
 	//输出图像分配内存
 	cv::Mat mat = cv::Mat(frameHeight * 3 / 2, frameWidth, CV_8UC1, pDecodedBuffer);
-	cv::cvtColor(mat, bgr, cv::COLOR_YUV420p2RGB);
+	cv::cvtColor(mat, bgr, cv::COLOR_YUV420p2BGR);
 	//释放buffer
 	free(pDecodedBuffer);
 	return 1;

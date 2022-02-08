@@ -6,13 +6,15 @@ BackgroundMatting::BackgroundMatting(int model_size)
 {
 	this->model_size = model_size;
 	is_first = true;
-	device_count = 8;
+	int thread_count = std::thread::hardware_concurrency();
+	device_count = thread_count > 0 ? thread_count : 4;
 #if NCNN_VULKAN
-	device_count = ncnn::get_gpu_count();
+	device_count = std::max({ device_count, ncnn::get_gpu_count() });
 	net.opt.use_vulkan_compute = 1;
 #endif
 	net.opt.num_threads = device_count;
 	load();
+	printf("Model opens %d threads\n", device_count);
 }
 
 
@@ -130,7 +132,8 @@ int BackgroundMatting::draw(cv::Mat &rgb, cv::Mat &alpha)
 
 	cv::Mat dst;
 	double thresh = cv::threshold(alpha, dst, 0, 255, cv::THRESH_OTSU);
-	for (int i = 0; i < alpha.rows; i++)
+
+	concurrency::parallel_for(rsize_t(0), (size_t)alpha.rows, [&](size_t i)
 	{
 		for (int j = 0; j < alpha.cols; j++)
 		{
@@ -141,7 +144,25 @@ int BackgroundMatting::draw(cv::Mat &rgb, cv::Mat &alpha)
 				rgb.at<cv::Vec3b>(i, j)[2] = 0;
 			}
 		}
-	}
+	});
+
+	/*for (int i = 0; i < alpha.rows; i++)
+	{
+		for (int j = 0; j < alpha.cols; j++)
+		{
+			uchar data = alpha.at<uchar>(i, j);
+			if (data < thresh) {
+				rgb.at<cv::Vec3b>(i, j)[0] = 0;
+				rgb.at<cv::Vec3b>(i, j)[1] = 0;
+				rgb.at<cv::Vec3b>(i, j)[2] = 0;
+			}
+		}
+	}*/
 	
 	return 0;
+}
+
+int BackgroundMatting::get_device_count()
+{
+	return device_count;
 }

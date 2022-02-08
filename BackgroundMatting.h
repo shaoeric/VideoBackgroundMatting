@@ -1,6 +1,8 @@
 #pragma once
 #include <net.h>
 #include <opencv2/opencv.hpp>
+#include <iostream>
+#include <ppl.h>
 
 class BackgroundMatting
 {
@@ -11,6 +13,7 @@ public:
 	void load();
 	void process(cv::Mat bgr, cv::Mat &mask, cv::Mat &foreground);
 	int draw(cv::Mat &img, cv::Mat &alpha);
+	int get_device_count();
 
 private:
 	int target_size;
