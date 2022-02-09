@@ -8,16 +8,22 @@
 #include "VideoReader.h"
 #include <sys/stat.h>
 #include <ctime>
+#include <filesystem> 
 
 #pragma comment(lib, "./lib/avcodec.lib")
 #pragma comment(lib, "./lib/avutil.lib")
 #pragma comment(lib, "./lib/avformat.lib")
+#pragma warning(disable: 4996);
 
+using namespace std;
+using namespace std::tr2::sys;
 
 inline bool file_exist(const std::string& name) {
 	struct stat buffer;
 	return (stat(name.c_str(), &buffer) == 0);
 }
+
+
 
 void video_matting_ffmpeg_read_write(std::string in_path, std::string out_path)
 {
@@ -57,6 +63,11 @@ void video_matting_ffmpeg_read_write(std::string in_path, std::string out_path)
 			writer.write(frame);
 			//cv::waitKey(1);
 			i++;
+			if (i % 100 == 0)
+			{
+				double current = clock();
+				printf("Processing %d frames costs %.2f ms, %.2f ms in average\n", i, current - start, (current - start) / i);
+			}
 		}
 		else if (ret < 0)
 		{
@@ -67,24 +78,30 @@ void video_matting_ffmpeg_read_write(std::string in_path, std::string out_path)
 		}*/
 	}
 	double current = clock();
-	std::cout << (current - start) / i << "ms" << std::endl;
+	printf("Totally %d frames, %.2f ms, %.2f ms in average\n", i, current - start, (current - start) / i);
 	writer.flush();
 	reader.flush();
 }
 
 int main(int argc, char *argv[])
 {
-	std::string in_path = argv[1];
-	std::string out_path = argv[2];
-	
+	string in_path = argv[1];
+
 	if (!file_exist(in_path))
 	{
-		printf("Video [in] %s not found !", in_path.c_str());
+		printf("Video [in] %s not found !\n", in_path.c_str());
 		return 0;
 	}
-	printf("Video [in] %s\n", in_path.c_str());
-	printf("Video [out] %s\n", out_path.c_str());
 
-	video_matting_ffmpeg_read_write(in_path, out_path);
+	path p(in_path.c_str());
+	path filename = p.stem();
+	cout << "Reading video from: " << p.string() << endl;
+
+	p.replace_filename(filename.string() + "_matting.mp4");
+	string matting_path = p.string();
+	
+	cout << "Writing matting to: " << matting_path << endl;
+
+	video_matting_ffmpeg_read_write(in_path, matting_path);
 	return 0;
 }

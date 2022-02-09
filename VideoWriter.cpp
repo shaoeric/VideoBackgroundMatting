@@ -78,7 +78,7 @@ int VideoWriter::init()
 	pCodecCtx->time_base.den = fps;
 	pCodecCtx->bit_rate = bit_rate;
 	pCodecCtx->thread_count = num_threads > 0 ? num_threads: 4;
-	printf("Video encoder opens %d thread\n", pCodecCtx->thread_count);
+	printf("Video encoder opens %d threads\n", pCodecCtx->thread_count);
 
 	//pCodecCtx->qmin = 10;
 	//pCodecCtx->qmax = 30;
